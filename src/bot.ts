@@ -110,13 +110,15 @@ bot.command('me', async (ctx) => {
         }
     }
 
-    // 3. Ничего не нашли — логируем структуру для диагностики
-    const appEl = root.querySelector('#app, #__nuxt, #root, [data-page]');
-    console.log('Root app element:', appEl?.outerHTML?.slice(0, 500) ?? 'not found');
-    console.log('Script tags count:', root.querySelectorAll('script:not([src])').length);
-    console.log('HTML head:', html.slice(0, 2000));
+    // 3. Логируем скрипты и body для диагностики
+    let i = 0;
+    for (const script of root.querySelectorAll('script:not([src])')) {
+        console.log(`Script[${i++}]:`, script.text.slice(0, 400));
+    }
+    const body = root.querySelector('body');
+    console.log('Body start:', body?.innerHTML?.slice(0, 2000) ?? 'no body');
 
-    await ctx.reply('⚠️ Не удалось найти данные профиля. Смотри логи сервера для диагностики.');
+    await ctx.reply('⚠️ Не удалось найти данные профиля. Смотри логи сервера.');
 });
 
 bot.command('logout', async (ctx) => {
