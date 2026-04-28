@@ -6,6 +6,20 @@ wrapper(axios);
 
 export const TARGET = 'https://mangabuff.ru';
 
+const BROWSER_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+    'Accept-Encoding': 'identity',
+    'sec-ch-ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': '"Windows"',
+    'sec-fetch-dest': 'document',
+    'sec-fetch-mode': 'navigate',
+    'sec-fetch-site': 'none',
+    'sec-fetch-user': '?1',
+    'upgrade-insecure-requests': '1',
+};
+
 function patchHtml(html: string, proxyBase: string, userId: string): string {
     const staticBase = proxyBase.replace(`/proxy/${userId}`, `/static/${userId}`);
 
@@ -103,12 +117,11 @@ function patchHtml(html: string, proxyBase: string, userId: string): string {
     return (
         html
             .replace('</head>', interceptScript + '</head>')
-            // остальные replace остаются как были
-            .replace(/href="([^"]*?\.(css|woff2?|ttf)[^"]*)"/g, (match, url) => {
+            .replace(/href="([^"]*?\.(css|woff2?|ttf)[^"]*)"/g, (_m, url) => {
                 const absolute = url.startsWith('/') ? `${TARGET}${url}` : url;
                 return `href="${absolute.replace(TARGET, staticBase)}"`;
             })
-            .replace(/src="([^"]*?\.(js|png|jpg|jpeg|gif|svg|webp)[^"]*)"/g, (match, url) => {
+            .replace(/src="([^"]*?\.(js|png|jpg|jpeg|gif|svg|webp)[^"]*)"/g, (_m, url) => {
                 const absolute = url.startsWith('/') ? `${TARGET}${url}` : url;
                 return `src="${absolute.replace(TARGET, staticBase)}"`;
             })
@@ -117,7 +130,7 @@ function patchHtml(html: string, proxyBase: string, userId: string): string {
                 const absolute = url.startsWith('/') ? `${TARGET}${url}` : url;
                 return `action="${absolute.replace(TARGET, proxyBase)}"`;
             })
-            .replace(/href="(\/[^"]*?)"/g, (match, url) => {
+            .replace(/href="(\/[^"]*?)"/g, (_m, url) => {
                 return `href="${proxyBase}${url}"`;
             })
     );
@@ -132,12 +145,7 @@ export async function proxyGet(
     const client = axios.create({ jar, withCredentials: true });
 
     const response = await client.get(`${TARGET}${path}`, {
-        headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            Accept: 'text/html,application/xhtml+xml,*/*',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'identity',
-        },
+        headers: { ...BROWSER_HEADERS, Accept: 'text/html,application/xhtml+xml,*/*' },
         decompress: true,
         maxRedirects: 5,
     });
@@ -154,10 +162,7 @@ export async function proxyPost(
     const client = axios.create({ jar, withCredentials: true });
 
     const loginPage = await client.get(`${TARGET}${path}`, {
-        headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            Accept: 'text/html,application/xhtml+xml,*/*',
-        },
+        headers: { ...BROWSER_HEADERS, Accept: 'text/html,application/xhtml+xml,*/*' },
     });
 
     const csrfMatch = loginPage.data.match(
@@ -180,7 +185,7 @@ export async function proxyPost(
                 Accept: '*/*',
             },
             maxRedirects: 0,
-            validateStatus: (s) => true,
+            validateStatus: () => true,
         },
     );
 

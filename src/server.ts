@@ -47,7 +47,7 @@ app.get('/static/:userId/*path', async (req: Request, res: Response) => {
         });
 
         const contentType = response.headers['content-type'];
-        if (contentType) res.setHeader('Content-Type', contentType);
+        if (contentType) res.setHeader('Content-Type', String(contentType));
         res.send(Buffer.from(response.data));
     } catch (e: any) {
         console.error('Static error:', fullUrl, e.message);
