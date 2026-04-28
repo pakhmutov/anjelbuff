@@ -1,24 +1,20 @@
 import axios from 'axios';
 import { wrapper } from 'axios-cookiejar-support';
 import { CookieJar, Cookie } from 'tough-cookie';
+import { chromium, type Browser } from 'playwright';
 
 wrapper(axios);
 
 export const TARGET = 'https://mangabuff.ru';
 
-const BROWSER_HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-    'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
-    'Accept-Encoding': 'identity',
-    'sec-ch-ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
-    'sec-ch-ua-mobile': '?0',
-    'sec-ch-ua-platform': '"Windows"',
-    'sec-fetch-dest': 'document',
-    'sec-fetch-mode': 'navigate',
-    'sec-fetch-site': 'none',
-    'sec-fetch-user': '?1',
-    'upgrade-insecure-requests': '1',
-};
+let sharedBrowser: Browser | null = null;
+
+async function getBrowser(): Promise<Browser> {
+    if (!sharedBrowser || !sharedBrowser.isConnected()) {
+        sharedBrowser = await chromium.launch({ headless: true });
+    }
+    return sharedBrowser;
+}
 
 function patchHtml(html: string, proxyBase: string, userId: string): string {
     const staticBase = proxyBase.replace(`/proxy/${userId}`, `/static/${userId}`);
@@ -142,16 +138,29 @@ export async function proxyGet(
     jar: CookieJar,
     userId: string,
 ): Promise<{ html: string; status: number }> {
-    const client = axios.create({ jar, withCredentials: true });
+    const browser = await getBrowser();
+    const context = await browser.newContext();
+    const page = await context.newPage();
 
-    const response = await client.get(`${TARGET}${path}`, {
-        headers: { ...BROWSER_HEADERS, Accept: 'text/html,application/xhtml+xml,*/*' },
-        decompress: true,
-        maxRedirects: 5,
-    });
+    try {
+        await page.goto(`${TARGET}${path}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        const html = await page.content();
 
-    const patched = patchHtml(response.data, proxyBase, userId);
-    return { html: patched, status: response.status };
+        // Перекладываем куки (включая cf_clearance) в jar для последующих axios-запросов
+        const pwCookies = await context.cookies();
+        for (const c of pwCookies) {
+            try {
+                await jar.setCookie(
+                    `${c.name}=${c.value}; Domain=${c.domain}; Path=${c.path ?? '/'}${c.secure ? '; Secure' : ''}`,
+                    TARGET,
+                );
+            } catch (_) {}
+        }
+
+        return { html: patchHtml(html, proxyBase, userId), status: 200 };
+    } finally {
+        await context.close();
+    }
 }
 
 export async function proxyPost(
@@ -161,14 +170,10 @@ export async function proxyPost(
 ): Promise<{ cookies: Cookie[]; redirectUrl: string | null }> {
     const client = axios.create({ jar, withCredentials: true });
 
-    const loginPage = await client.get(`${TARGET}${path}`, {
-        headers: { ...BROWSER_HEADERS, Accept: 'text/html,application/xhtml+xml,*/*' },
-    });
-
-    const csrfMatch = loginPage.data.match(
-        /content="([^"]+)"[^>]*name="csrf-token"|name="csrf-token"[^>]*content="([^"]+)"/,
-    );
-    const csrfToken = csrfMatch ? csrfMatch[1] || csrfMatch[2] : null;
+    // CSRF-токен достаём из куки _token, которая уже в jar после proxyGet
+    const jarCookies = await jar.getCookies(TARGET);
+    const csrfCookie = jarCookies.find((c) => c.key === 'XSRF-TOKEN' || c.key === '_token');
+    const csrfToken = csrfCookie ? decodeURIComponent(csrfCookie.value) : null;
     console.log('CSRF token:', csrfToken);
 
     const loginResponse = await client.post(

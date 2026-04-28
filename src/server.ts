@@ -27,7 +27,7 @@ app.use((req, res, next) => {
 const tempJars = new Map<string, CookieJar>();
 
 app.get('/static/:userId/*path', async (req: Request, res: Response) => {
-    const path = getPath(req.params.path);
+    const path = getPath(req.params.path as string | string[]);
     const fullUrl = `${TARGET}${path}${Object.keys(req.query).length ? '?' + new URLSearchParams(req.query as any).toString() : ''}`;
 
     console.log('Static request:', fullUrl);
@@ -56,7 +56,7 @@ app.get('/static/:userId/*path', async (req: Request, res: Response) => {
 });
 
 app.get('/proxy/:userId/*path', async (req: Request, res: Response) => {
-    const userId = req.params.userId;
+    const userId = String(req.params.userId);
     const path = getPath(req.params.path);
     const proxyBase = `${process.env.PROXY_HOST}/proxy/${userId}`;
 
@@ -95,7 +95,7 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 app.post('/proxy/:userId/*path', async (req: Request, res: Response) => {
-    const userId = req.params.userId;
+    const userId = String(req.params.userId);
     const path = getPath(req.params.path);
 
     const jar = tempJars.get(userId) ?? new CookieJar();
