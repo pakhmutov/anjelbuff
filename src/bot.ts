@@ -5,7 +5,7 @@ import { SocksProxyAgent } from 'socks-proxy-agent';
 import axios from 'axios';
 import './server.ts';
 
-const agent = new SocksProxyAgent('socks5://127.0.0.1:1080');
+const agent = new SocksProxyAgent('socks5h://127.0.0.1:1081');
 
 const bot = new Telegraf(process.env.BOT_TOKEN!, {
     telegram: {
