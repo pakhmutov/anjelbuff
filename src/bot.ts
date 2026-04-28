@@ -4,7 +4,16 @@ import { initDb, hasSession, getSession, deleteSession, cookiesToHeader } from '
 import axios from 'axios';
 import './server.ts';
 
-const bot = new Telegraf(process.env.BOT_TOKEN!);
+import { SocksProxyAgent } from 'socks-proxy-agent';
+
+const agent = new SocksProxyAgent('socks5://ryrraryPROXY:GVEFTqPTL@212.108.83.166:1080');
+
+const bot = new Telegraf(process.env.BOT_TOKEN!, {
+    telegram: {
+        agent: agent as any,
+    },
+});
+
 const PROXY_HOST = process.env.PROXY_HOST!;
 
 bot.command('login', async (ctx) => {
