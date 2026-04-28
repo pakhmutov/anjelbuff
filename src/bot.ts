@@ -63,8 +63,7 @@ bot.command('me', async (ctx) => {
         Accept: 'application/json, text/html, */*',
     };
 
-    console.log('Session cookies:', JSON.stringify(cookies).slice(0, 500));
-    console.log('Cookie header:', cookieHeader.slice(0, 300));
+    console.log('Cookie keys:', (cookies as any[]).map((c: any) => c.key));
 
     const { data: html } = await axios.get('https://mangabuff.ru/', { headers });
 
