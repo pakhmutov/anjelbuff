@@ -74,6 +74,26 @@ app.get('/proxy/:userId/*path', async (req: Request, res: Response) => {
     }
 });
 
+app.get('/', (req: Request, res: Response) => {
+    res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <script src="https://telegram.org/js/telegram-web-app.js"></script>
+        </head>
+        <body>
+            <script>
+                if (window.Telegram && window.Telegram.WebApp) {
+                    window.Telegram.WebApp.sendData(JSON.stringify({ success: true }));
+                    setTimeout(() => window.Telegram.WebApp.close(), 500);
+                }
+            </script>
+            <p>✅ Авторизация успешна!</p>
+        </body>
+        </html>
+    `);
+});
+
 app.post('/proxy/:userId/*path', async (req: Request, res: Response) => {
     const userId = req.params.userId;
     const path = getPath(req.params.path);
