@@ -10,7 +10,6 @@ function getPath(param: string | string[]): string {
     return '/' + param;
 }
 
-
 export const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));

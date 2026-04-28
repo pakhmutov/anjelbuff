@@ -60,12 +60,15 @@ bot.command('me', async (ctx) => {
     const { data: html } = await axios.get('https://mangabuff.ru/', {
         headers: {
             Cookie: cookieHeader,
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'User-Agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
         },
     });
 
     const root = parse(html);
-    let isAuth = 0, userId = 0, isPro = 0;
+    let isAuth = 0,
+        userId = 0,
+        isPro = 0;
 
     for (const script of root.querySelectorAll('script:not([src])')) {
         const src = script.text;

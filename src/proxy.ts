@@ -183,7 +183,8 @@ export async function proxyPost(
         await page.waitForSelector('button.login-button:not([disabled])', { timeout: 10000 });
         await page.click('button.login-button');
 
-        await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 10000 })
+        await page
+            .waitForURL((url) => !url.pathname.includes('/login'), { timeout: 10000 })
             .catch(() => {});
 
         const finalUrl = page.url();
@@ -191,15 +192,21 @@ export async function proxyPost(
         console.log('Login ok:', loginOk, '→', finalUrl);
 
         const pwCookies = await context.cookies();
-        const cookies: Cookie[] = pwCookies.map((c) => new Cookie({
-            key: c.name,
-            value: c.value,
-            domain: c.domain.replace(/^\./, ''),
-            path: c.path ?? '/',
-            secure: c.secure,
-        }));
+        const cookies: Cookie[] = pwCookies.map(
+            (c) =>
+                new Cookie({
+                    key: c.name,
+                    value: c.value,
+                    domain: c.domain.replace(/^\./, ''),
+                    path: c.path ?? '/',
+                    secure: c.secure,
+                }),
+        );
 
-        console.log('Cookies:', cookies.map((c) => c.key));
+        console.log(
+            'Cookies:',
+            cookies.map((c) => c.key),
+        );
         return { cookies, redirectUrl: finalUrl, loginOk };
     } finally {
         await context.close();
