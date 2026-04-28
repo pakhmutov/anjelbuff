@@ -87,23 +87,11 @@ app.post('/proxy/:userId/*path', async (req: Request, res: Response) => {
             saveSession(Number(userId), cookies);
             tempJars.delete(userId);
 
-            res.send(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-                </head>
-                <body>
-                    <script>
-                        Telegram.WebApp.sendData(JSON.stringify({ success: true }));
-                        setTimeout(() => Telegram.WebApp.close(), 500);
-                    </script>
-                    <p>✅ Авторизация успешна! Закрываю...</p>
-                </body>
-                </html>
-            `);
+            res.setHeader('Content-Type', 'application/json');
+            res.send(JSON.stringify({ status: true, _proxy_success: true }));
         } else {
-            res.redirect(`/proxy/${userId}/login?error=1`);
+            res.setHeader('Content-Type', 'application/json');
+            res.send(JSON.stringify({ status: false }));
         }
     } catch (e: any) {
         res.status(500).send('Login error: ' + e.message);

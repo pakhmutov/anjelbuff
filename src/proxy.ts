@@ -11,16 +11,28 @@ function patchHtml(html: string, proxyBase: string, userId: string): string {
 
     const interceptScript = `
     <script>
+        // Перехват fetch
         const _originalFetch = window.fetch;
-        window.fetch = function(url, options) {
+        window.fetch = async function(url, options) {
             if (typeof url === 'string' && url.startsWith('/')) {
                 url = '${proxyBase}' + url;
             } else if (typeof url === 'string' && url.startsWith('${TARGET}')) {
                 url = url.replace('${TARGET}', '${proxyBase}');
             }
-            return _originalFetch(url, options);
+            
+            const response = await _originalFetch(url, options);
+            
+            const clone = response.clone();
+            clone.json().then(data => {
+                if (data && data._proxy_success) {
+                    window.__loginSuccess = true;
+                }
+            }).catch(() => {});
+            
+            return response;
         };
 
+        // Перехват XHR
         const _originalXHR = window.XMLHttpRequest.prototype.open;
         window.XMLHttpRequest.prototype.open = function(method, url, ...rest) {
             if (typeof url === 'string' && url.startsWith('/')) {
@@ -30,6 +42,35 @@ function patchHtml(html: string, proxyBase: string, userId: string): string {
             }
             return _originalXHR.call(this, method, url, ...rest);
         };
+
+        // Перехват навигации через history
+        const _pushState = history.pushState.bind(history);
+        history.pushState = function(state, title, url) {
+            if (window.__loginSuccess) {
+                if (window.Telegram && window.Telegram.WebApp) {
+                    window.Telegram.WebApp.sendData(JSON.stringify({ success: true }));
+                    setTimeout(() => window.Telegram.WebApp.close(), 500);
+                } else {
+                    document.body.innerHTML = '<p>✅ Авторизация успешна!</p>';
+                }
+                return;
+            }
+            if (typeof url === 'string' && url.startsWith('/')) {
+                url = '${proxyBase}' + url;
+            }
+            return _pushState(state, title, url);
+        };
+
+        // Перехват location.href через beforeunload
+        window.addEventListener('beforeunload', function(e) {
+            if (window.__loginSuccess) {
+                e.preventDefault();
+                if (window.Telegram && window.Telegram.WebApp) {
+                    window.Telegram.WebApp.sendData(JSON.stringify({ success: true }));
+                    window.Telegram.WebApp.close();
+                }
+            }
+        });
     </script>
     `;
 
