@@ -57,70 +57,35 @@ bot.command('me', async (ctx) => {
     if (!cookies) return ctx.reply('❌ Сначала /login');
 
     const cookieHeader = cookiesToHeader(cookies as any);
-    const headers = {
-        Cookie: cookieHeader,
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        Accept: 'application/json, text/html, */*',
-    };
-
-    console.log('Cookie keys:', (cookies as any[]).map((c: any) => c.key));
-
-    const { data: html } = await axios.get('https://mangabuff.ru/', { headers });
+    const { data: html } = await axios.get('https://mangabuff.ru/', {
+        headers: {
+            Cookie: cookieHeader,
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        },
+    });
 
     const root = parse(html);
+    let isAuth = 0, userId = 0, isPro = 0;
 
-    // 1. Inertia.js: <div id="app" data-page='{"props":{"auth":{"user":{...}}}}'>
-    const inertiaEl = root.querySelector('#app[data-page]');
-    if (inertiaEl) {
-        try {
-            const pageData = JSON.parse(inertiaEl.getAttribute('data-page')!);
-            console.log('Inertia data-page keys:', Object.keys(pageData?.props ?? {}));
-            const user = pageData?.props?.auth?.user ?? pageData?.props?.user;
-            if (user) {
-                const lines = [`👤 *${user.name ?? user.username ?? user.login}*`];
-                if (user.email) lines.push(`📧 ${user.email}`);
-                if (user.id) lines.push(`🆔 ${user.id}`);
-                return ctx.reply(lines.join('\n'), { parse_mode: 'Markdown' });
-            }
-        } catch (_) {}
-    }
-
-    // 2. window.__NUXT__ / window.__INITIAL_STATE__ / window.auth в <script>
     for (const script of root.querySelectorAll('script:not([src])')) {
         const src = script.text;
-
-        // Nuxt
-        const nuxtMatch = src.match(/window\.__NUXT__\s*=\s*(\{[\s\S]*?\})\s*;/);
-        if (nuxtMatch) {
-            console.log('Found __NUXT__, snippet:', nuxtMatch[1].slice(0, 300));
-        }
-
-        // Любой JSON с полем user/auth
-        const userMatch = src.match(/"user"\s*:\s*(\{[^{}]*\})/);
-        if (userMatch) {
-            try {
-                const user = JSON.parse(userMatch[1]);
-                console.log('Found user in script:', JSON.stringify(user).slice(0, 300));
-                if (user.name || user.username || user.login) {
-                    const name = user.name ?? user.username ?? user.login;
-                    const lines = [`👤 *${name}*`];
-                    if (user.email) lines.push(`📧 ${user.email}`);
-                    if (user.id) lines.push(`🆔 ${user.id}`);
-                    return ctx.reply(lines.join('\n'), { parse_mode: 'Markdown' });
-                }
-            } catch (_) {}
-        }
+        const authMatch = src.match(/window\.isAuth\s*=\s*(\d+)/);
+        if (!authMatch) continue;
+        isAuth = parseInt(authMatch[1]);
+        const userIdMatch = src.match(/window\.user_id\s*=\s*(\d+)/);
+        const isProMatch = src.match(/window\.isPro\s*=\s*(\d+)/);
+        if (userIdMatch) userId = parseInt(userIdMatch[1]);
+        if (isProMatch) isPro = parseInt(isProMatch[1]);
+        break;
     }
 
-    // 3. Логируем скрипты и body для диагностики
-    let i = 0;
-    for (const script of root.querySelectorAll('script:not([src])')) {
-        console.log(`Script[${i++}]:`, script.text.slice(0, 400));
+    if (!isAuth) {
+        return ctx.reply('❌ Сессия истекла. Сделай /logout и /login заново.');
     }
-    const body = root.querySelector('body');
-    console.log('Body start:', body?.innerHTML?.slice(0, 2000) ?? 'no body');
 
-    await ctx.reply('⚠️ Не удалось найти данные профиля. Смотри логи сервера.');
+    const lines = [`✅ Авторизован`, `🆔 ID: ${userId}`];
+    if (isPro) lines.push('⭐ Pro аккаунт');
+    return ctx.reply(lines.join('\n'));
 });
 
 bot.command('logout', async (ctx) => {
