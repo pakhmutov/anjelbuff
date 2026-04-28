@@ -180,7 +180,7 @@ export async function proxyPost(
 
         await emailField.fill(body.email ?? '');
         await passwordField.fill(body.password ?? '');
-        await page.click('button[type="submit"], input[type="submit"]');
+        await passwordField.press('Enter');
 
         await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 10000 })
             .catch(() => {});
