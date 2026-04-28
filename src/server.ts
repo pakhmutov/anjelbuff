@@ -67,7 +67,7 @@ app.get('/proxy/:userId/*path', async (req: Request, res: Response) => {
     const jar = tempJars.get(userId)!;
 
     try {
-        const { html, status } = await proxyGet(path, proxyBase, jar, userId);
+        const { html, status } = await proxyGet(path, proxyBase, jar);
         res.status(status).send(html);
     } catch (e: any) {
         res.status(500).send('Proxy error: ' + e.message);

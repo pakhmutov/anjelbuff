@@ -16,9 +16,7 @@ async function getBrowser(): Promise<Browser> {
     return sharedBrowser;
 }
 
-function patchHtml(html: string, proxyBase: string, userId: string): string {
-    const staticBase = proxyBase.replace(`/proxy/${userId}`, `/static/${userId}`);
-
+function patchHtml(html: string, proxyBase: string): string {
     const interceptScript = `
     <script>
         const _originalFetch = window.fetch;
@@ -110,33 +108,30 @@ function patchHtml(html: string, proxyBase: string, userId: string): string {
     </script>
 `;
 
-    return (
-        html
-            .replace('</head>', interceptScript + '</head>')
-            .replace(/href="([^"]*?\.(css|woff2?|ttf)[^"]*)"/g, (_m, url) => {
-                const absolute = url.startsWith('/') ? `${TARGET}${url}` : url;
-                return `href="${absolute.replace(TARGET, staticBase)}"`;
-            })
-            .replace(/src="([^"]*?\.(js|png|jpg|jpeg|gif|svg|webp)[^"]*)"/g, (_m, url) => {
-                const absolute = url.startsWith('/') ? `${TARGET}${url}` : url;
-                return `src="${absolute.replace(TARGET, staticBase)}"`;
-            })
-            .replace(/action="([^"]*?)"/g, (match, url) => {
-                if (url.startsWith('http') && !url.startsWith(TARGET)) return match;
-                const absolute = url.startsWith('/') ? `${TARGET}${url}` : url;
-                return `action="${absolute.replace(TARGET, proxyBase)}"`;
-            })
-            .replace(/href="(\/[^"]*?)"/g, (_m, url) => {
-                return `href="${proxyBase}${url}"`;
-            })
-    );
+    return html
+        .replace('</head>', interceptScript + '</head>')
+        .replace(/href="([^"]*?\.(css|woff2?|ttf)[^"]*)"/g, (_m, url) => {
+            const absolute = url.startsWith('/') ? `${TARGET}${url}` : url;
+            return `href="${absolute}"`;
+        })
+        .replace(/src="([^"]*?\.(js|png|jpg|jpeg|gif|svg|webp)[^"]*)"/g, (_m, url) => {
+            const absolute = url.startsWith('/') ? `${TARGET}${url}` : url;
+            return `src="${absolute}"`;
+        })
+        .replace(/action="([^"]*?)"/g, (match, url) => {
+            if (url.startsWith('http') && !url.startsWith(TARGET)) return match;
+            const absolute = url.startsWith('/') ? `${TARGET}${url}` : url;
+            return `action="${absolute.replace(TARGET, proxyBase)}"`;
+        })
+        .replace(/href="(\/[^"]*?)"/g, (_m, url) => {
+            return `href="${proxyBase}${url}"`;
+        });
 }
 
 export async function proxyGet(
     path: string,
     proxyBase: string,
     jar: CookieJar,
-    userId: string,
 ): Promise<{ html: string; status: number }> {
     const browser = await getBrowser();
     const context = await browser.newContext();
@@ -157,7 +152,7 @@ export async function proxyGet(
             } catch (_) {}
         }
 
-        return { html: patchHtml(html, proxyBase, userId), status: 200 };
+        return { html: patchHtml(html, proxyBase), status: 200 };
     } finally {
         await context.close();
     }
