@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { Telegraf } from 'telegraf';
+import { message } from 'telegraf/filters';
 import { initDb, hasSession, getSession, deleteSession, cookiesToHeader } from './sessions.ts';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import axios from 'axios';
@@ -24,7 +25,7 @@ bot.command('login', async (ctx) => {
 
     await ctx.reply('Открой браузер и авторизуйся:', {
         reply_markup: {
-            inline_keyboard: [
+            keyboard: [
                 [
                     {
                         text: '🌐 Войти на сайт',
@@ -32,11 +33,13 @@ bot.command('login', async (ctx) => {
                     },
                 ],
             ],
+            one_time_keyboard: true,
+            resize_keyboard: true,
         },
     });
 });
 
-bot.on('web_app_data', async (ctx) => {
+bot.on(message('web_app_data'), async (ctx) => {
     console.log('web_app_data received:', ctx.webAppData?.data.text());
     try {
         const data = JSON.parse(ctx.webAppData!.data.text());
