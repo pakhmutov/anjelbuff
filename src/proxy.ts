@@ -161,48 +161,46 @@ export async function proxyGet(
 export async function proxyPost(
     path: string,
     body: Record<string, string>,
-    jar: CookieJar,
+    _jar: CookieJar,
 ): Promise<{ cookies: Cookie[]; redirectUrl: string; loginOk: boolean }> {
-    const client = axios.create({ jar, withCredentials: true });
+    const browser = await getBrowser();
+    const context = await browser.newContext();
+    const page = await context.newPage();
 
-    // CSRF-токен достаём из куки _token, которая уже в jar после proxyGet
-    const jarCookies = await jar.getCookies(TARGET);
-    const csrfCookie = jarCookies.find((c) => c.key === 'XSRF-TOKEN' || c.key === '_token');
-    const csrfToken = csrfCookie ? decodeURIComponent(csrfCookie.value) : null;
-    console.log('CSRF token:', csrfToken);
+    try {
+        await page.goto(`${TARGET}${path}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
-    const loginResponse = await client.post(
-        `${TARGET}${path}`,
-        new URLSearchParams(body).toString(),
-        {
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'User-Agent':
-                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36',
-                Referer: `${TARGET}/login`,
-                Accept: 'text/html,application/xhtml+xml,*/*',
-                'sec-fetch-dest': 'document',
-                'sec-fetch-mode': 'navigate',
-                'sec-fetch-site': 'same-origin',
-                'upgrade-insecure-requests': '1',
-            },
-            maxRedirects: 0,
-            validateStatus: () => true,
-        },
-    );
+        const emailField = await page.$('input[name="email"], input[type="email"]');
+        const passwordField = await page.$('input[name="password"], input[type="password"]');
 
-    const location = loginResponse.headers['location'] ?? '';
-    console.log('Login status:', loginResponse.status, '→', location);
+        if (!emailField || !passwordField) {
+            console.error('Login form fields not found');
+            return { cookies: [], redirectUrl: '', loginOk: false };
+        }
 
-    // Успешный логин: редирект куда угодно кроме /login
-    const loginOk = loginResponse.status === 302 && !location.includes('/login');
+        await emailField.fill(body.email ?? '');
+        await passwordField.fill(body.password ?? '');
+        await page.click('button[type="submit"], input[type="submit"]');
 
-    const cookies = await jar.getCookies(TARGET);
-    console.log(
-        'Login ok:',
-        loginOk,
-        '| Cookies:',
-        cookies.map((c) => c.key),
-    );
-    return { cookies, redirectUrl: location, loginOk };
+        await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 10000 })
+            .catch(() => {});
+
+        const finalUrl = page.url();
+        const loginOk = !finalUrl.includes('/login');
+        console.log('Login ok:', loginOk, '→', finalUrl);
+
+        const pwCookies = await context.cookies();
+        const cookies: Cookie[] = pwCookies.map((c) => new Cookie({
+            key: c.name,
+            value: c.value,
+            domain: c.domain.replace(/^\./, ''),
+            path: c.path ?? '/',
+            secure: c.secure,
+        }));
+
+        console.log('Cookies:', cookies.map((c) => c.key));
+        return { cookies, redirectUrl: finalUrl, loginOk };
+    } finally {
+        await context.close();
+    }
 }
