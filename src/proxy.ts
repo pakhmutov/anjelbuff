@@ -162,7 +162,7 @@ export async function proxyPost(
     path: string,
     body: Record<string, string>,
     jar: CookieJar,
-): Promise<{ cookies: Cookie[]; redirectUrl: string | null }> {
+): Promise<{ cookies: Cookie[]; redirectUrl: string; loginOk: boolean }> {
     const client = axios.create({ jar, withCredentials: true });
 
     // CSRF-токен достаём из куки _token, которая уже в jar после proxyGet
@@ -176,26 +176,33 @@ export async function proxyPost(
         new URLSearchParams(body).toString(),
         {
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'Content-Type': 'application/x-www-form-urlencoded',
                 'User-Agent':
                     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36',
                 Referer: `${TARGET}/login`,
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': csrfToken ?? '',
-                Accept: '*/*',
+                Accept: 'text/html,application/xhtml+xml,*/*',
+                'sec-fetch-dest': 'document',
+                'sec-fetch-mode': 'navigate',
+                'sec-fetch-site': 'same-origin',
+                'upgrade-insecure-requests': '1',
             },
             maxRedirects: 0,
             validateStatus: () => true,
         },
     );
 
-    console.log('Login status:', loginResponse.status);
-    console.log('Login response:', JSON.stringify(loginResponse.data));
+    const location = loginResponse.headers['location'] ?? '';
+    console.log('Login status:', loginResponse.status, '→', location);
+
+    // Успешный логин: редирект куда угодно кроме /login
+    const loginOk = loginResponse.status === 302 && !location.includes('/login');
 
     const cookies = await jar.getCookies(TARGET);
     console.log(
-        'Cookies:',
+        'Login ok:',
+        loginOk,
+        '| Cookies:',
         cookies.map((c) => c.key),
     );
-    return { cookies, redirectUrl: null };
+    return { cookies, redirectUrl: location, loginOk };
 }

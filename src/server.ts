@@ -1,7 +1,6 @@
 import express from 'express';
 import type { Request, Response } from 'express';
 import { CookieJar } from 'tough-cookie';
-import type { Cookie } from 'tough-cookie';
 import axios from 'axios';
 import { proxyGet, proxyPost, TARGET } from './proxy.ts';
 import { saveSession } from './sessions.ts';
@@ -11,9 +10,6 @@ function getPath(param: string | string[]): string {
     return '/' + param;
 }
 
-function isLoggedIn(cookies: Cookie[]): boolean {
-    return cookies.some((c) => c.key === 'mangabuff_session' || c.key.startsWith('remember_web_'));
-}
 
 export const app = express();
 app.use(express.urlencoded({ extended: true }));
@@ -101,9 +97,9 @@ app.post('/proxy/:userId/*path', async (req: Request, res: Response) => {
     const jar = tempJars.get(userId) ?? new CookieJar();
 
     try {
-        const { cookies } = await proxyPost(path, req.body, jar);
+        const { cookies, loginOk } = await proxyPost(path, req.body, jar);
 
-        if (isLoggedIn(cookies)) {
+        if (loginOk) {
             saveSession(Number(userId), cookies);
             tempJars.delete(userId);
 
