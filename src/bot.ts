@@ -1,12 +1,11 @@
 import 'dotenv/config';
 import { Telegraf } from 'telegraf';
 import { initDb, hasSession, getSession, deleteSession, cookiesToHeader } from './sessions.ts';
+import { SocksProxyAgent } from 'socks-proxy-agent';
 import axios from 'axios';
 import './server.ts';
 
-import { SocksProxyAgent } from 'socks-proxy-agent';
-
-const agent = new SocksProxyAgent('socks5://ryrraryPROXY:GVEFTqPTL@212.108.83.166:1080');
+const agent = new SocksProxyAgent('socks5://127.0.0.1:1080');
 
 const bot = new Telegraf(process.env.BOT_TOKEN!, {
     telegram: {
