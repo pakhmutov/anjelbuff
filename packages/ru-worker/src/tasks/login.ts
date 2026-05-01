@@ -49,7 +49,7 @@ export async function handleLoginRequest(req: LoginRequest): Promise<void> {
         console.log(`[login] ${account_id}: ✅ success`);
     } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        await page.screenshot({ path: `./screenshots/login-fail-${id}.png`, fullPage: true }).catch(() => {});
+        await page.screenshot({ path: `/root/anjelbuff/screenshots/login-fail-${id}.png`, fullPage: true }).catch(() => {});
         await ukApi.updateLoginRequestStatus(id, { status: 'failed', error_message: msg });
         console.error(`[login] ${account_id}: ❌`, msg);
     } finally {
