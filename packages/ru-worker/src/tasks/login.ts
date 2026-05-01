@@ -5,10 +5,11 @@ import { ukApi } from '../api-client.ts';
 export async function handleLoginRequest(req: LoginRequest): Promise<void> {
     const { id, account_id } = req;
 
-    // Ждём credentials от пользователя (бот их положит в login_request)
     if (!req.login_enc || !req.password_enc) {
-        console.log(`[login] ${id}: waiting for credentials`);
-        await ukApi.updateLoginRequestStatus(id, { status: 'awaiting_credentials' });
+        await ukApi.updateLoginRequestStatus(id, {
+            status: 'failed',
+            error_message: 'Credentials missing',
+        });
         return;
     }
 
