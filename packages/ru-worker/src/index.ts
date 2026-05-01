@@ -3,7 +3,7 @@ import { ukApi } from './api-client.ts';
 import { executeJob } from './tasks/executor.ts';
 import { handleLoginRequest } from './tasks/login.ts';
 
-const POLL_INTERVAL_MS = 30_000;
+const POLL_INTERVAL_MS = 3_000;
 const HEARTBEAT_INTERVAL_MS = 60_000;
 
 async function pollTasks(): Promise<void> {
