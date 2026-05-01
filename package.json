@@ -3,6 +3,9 @@
     "version": "1.0.0",
     "private": true,
     "packageManager": "pnpm@10.28.2",
+    "devDependencies": {
+        "tsx": "^4.19.4"
+    },
     "scripts": {
         "uk": "pnpm --filter uk-service dev",
         "ru": "pnpm --filter ru-worker dev",
