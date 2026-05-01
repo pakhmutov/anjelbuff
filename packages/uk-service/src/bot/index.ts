@@ -21,6 +21,7 @@ export function createBot() {
             'Привет! Я помогаю автоматизировать действия на сайте.\n\n' +
             '/connect — подключить аккаунт\n' +
             '/status — статус аккаунтов\n' +
+            '/profile — данные профиля\n' +
             '/disconnect — отключить аккаунт',
         );
     });
@@ -73,6 +74,25 @@ export function createBot() {
         });
 
         ctx.reply(lines.join('\n'));
+    });
+
+    bot.command('profile', async (ctx) => {
+        const accountResult = await db.query(
+            `SELECT id FROM site_accounts WHERE user_id = $1 AND status = 'active'`,
+            [ctx.from.id],
+        );
+        if (accountResult.rows.length === 0) {
+            return ctx.reply('Нет активного аккаунта. Используй /connect');
+        }
+        const accountId = accountResult.rows[0].id as string;
+
+        await db.query(
+            `INSERT INTO jobs (account_id, job_type, scheduled_for, priority)
+             VALUES ($1, 'fetch_profile', NOW(), 1)`,
+            [accountId],
+        );
+
+        ctx.reply('⏳ Запрашиваю данные профиля...');
     });
 
     bot.command('disconnect', async (ctx) => {

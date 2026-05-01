@@ -49,9 +49,9 @@ api.post('/tasks/:id/result', async (req: Request, res: Response) => {
 
     await db.query(`UPDATE jobs SET status = $1 WHERE id = $2`, [body.status, id]);
     await db.query(
-        `INSERT INTO job_runs (job_id, worker_id, finished_at, status, currency_earned, error_message, screenshot_path)
-         VALUES ($1, $2, NOW(), $3, $4, $5, $6)`,
-        [id, worker_id, body.status, body.currency_earned ?? null, body.error_message ?? null, body.screenshot_path ?? null],
+        `INSERT INTO job_runs (job_id, worker_id, finished_at, status, currency_earned, error_message, screenshot_path, profile_data)
+         VALUES ($1, $2, NOW(), $3, $4, $5, $6, $7)`,
+        [id, worker_id, body.status, body.currency_earned ?? null, body.error_message ?? null, body.screenshot_path ?? null, body.profile_data ? JSON.stringify(body.profile_data) : null],
     );
 
     res.json({ ok: true });

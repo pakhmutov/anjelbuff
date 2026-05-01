@@ -51,6 +51,8 @@ CREATE TABLE IF NOT EXISTS login_requests (
 
 -- Добавить колонку если БД уже существует
 ALTER TABLE login_requests ADD COLUMN IF NOT EXISTS notified_at TIMESTAMPTZ;
+ALTER TABLE job_runs ADD COLUMN IF NOT EXISTS profile_data JSONB;
+ALTER TABLE job_runs ADD COLUMN IF NOT EXISTS notified_at TIMESTAMPTZ;
 
 CREATE TABLE IF NOT EXISTS jobs (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
