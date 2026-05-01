@@ -5,18 +5,36 @@ on:
         branches: [main]
 
 jobs:
-    deploy:
+    deploy-uk:
+        name: Deploy uk-service → UK VPS
         runs-on: ubuntu-latest
         steps:
             - name: Deploy via SSH
               uses: appleboy/ssh-action@v1.2.0
               with:
-                  host: ${{ secrets.SSH_HOST }}
-                  username: ${{ secrets.SSH_USER }}
-                  key: ${{ secrets.SSH_KEY }}
+                  host: ${{ secrets.UK_SSH_HOST }}
+                  username: ${{ secrets.UK_SSH_USER }}
+                  key: ${{ secrets.UK_SSH_KEY }}
                   script: |
                       cd ~/anjelbuff
                       git pull origin main
                       pnpm install --frozen-lockfile
-                      pm2 restart anjelbuff || pm2 start src/bot.ts --name anjelbuff --interpreter
+                      pm2 reload ecosystem.uk.config.cjs --update-env || pm2 start ecosystem.uk.config.cjs
+                      pm2 save
+
+    deploy-ru:
+        name: Deploy ru-worker → RU VPS
+        runs-on: ubuntu-latest
+        steps:
+            - name: Deploy via SSH
+              uses: appleboy/ssh-action@v1.2.0
+              with:
+                  host: ${{ secrets.RU_SSH_HOST }}
+                  username: ${{ secrets.RU_SSH_USER }}
+                  key: ${{ secrets.RU_SSH_KEY }}
+                  script: |
+                      cd ~/anjelbuff
+                      git pull origin main
+                      pnpm install --frozen-lockfile
+                      pm2 reload ecosystem.ru.config.cjs --update-env || pm2 start ecosystem.ru.config.cjs
                       pm2 save

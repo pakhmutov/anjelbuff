@@ -1,2 +1,4 @@
+packages:
+    - 'packages/*'
 ignoredBuiltDependencies:
-  - better-sqlite3
+    - better-sqlite3
