@@ -15,7 +15,7 @@ async function main() {
 
     // Telegram bot
     const bot = createBot();
-    await bot.launch();
+    bot.launch();
     console.log('🤖 Bot started');
 
     process.once('SIGINT', () => bot.stop('SIGINT'));
