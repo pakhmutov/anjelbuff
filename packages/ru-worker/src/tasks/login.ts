@@ -17,21 +17,23 @@ export async function handleLoginRequest(req: LoginRequest): Promise<void> {
     const page = await context.newPage();
 
     try {
-        await page.goto('https://mangabuff.ru/login', {
-            waitUntil: 'domcontentloaded',
+        await page.goto('https://mangabuff.ru/', {
+            waitUntil: 'networkidle',
             timeout: 30_000,
         });
 
-        await page.fill('input[name="email"], input[type="email"]', req.login_enc);
-        await page.fill('input[name="password"], input[type="password"]', req.password_enc);
+        await page.click('a.header-login');
+        await page.waitForSelector('input[name="email"]', { state: 'visible', timeout: 10_000 });
+
+        await page.fill('input[name="email"]', req.login_enc);
+        await page.fill('input[name="password"]', req.password_enc);
         await page.waitForSelector('button.login-button:not([disabled])', { timeout: 10_000 });
         await page.click('button.login-button');
 
-        await page
-            .waitForURL((url) => !url.pathname.includes('/login'), { timeout: 15_000 })
-            .catch(() => {});
+        // Modal closes and page updates on successful login
+        await page.waitForSelector('a.header-login', { state: 'hidden', timeout: 15_000 }).catch(() => {});
 
-        const loginOk = !page.url().includes('/login');
+        const loginOk = !!(await page.$('.user-balance, .header__balance, [class*="balance"]'));
 
         if (!loginOk) {
             await ukApi.updateLoginRequestStatus(id, {
