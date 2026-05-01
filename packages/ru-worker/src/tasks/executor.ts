@@ -2,6 +2,7 @@ import type { Job } from '@anjelbuff/shared';
 import { type BrowserContext } from 'playwright';
 import { openProfile, isLoggedIn } from '../browser/profile.ts';
 import { ukApi } from '../api-client.ts';
+import { fetchProfile } from './fetch-profile.ts';
 
 // Лок: не запускать два таска на один аккаунт одновременно
 const runningAccounts = new Set<string>();
@@ -36,6 +37,12 @@ export async function executeJob(job: Job): Promise<void> {
             case 'chat_click':
                 await runChatClick(context, job);
                 break;
+            case 'fetch_profile': {
+                const profile = await fetchProfile(context);
+                await ukApi.submitTaskResult(job.id, { status: 'success', profile_data: profile });
+                console.log(`[fetch_profile] ${job.account_id}: ${profile.username} #${profile.user_id} 💎${profile.balance}`);
+                break;
+            }
             default:
                 await ukApi.submitTaskResult(job.id, {
                     status: 'failed',

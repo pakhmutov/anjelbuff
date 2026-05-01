@@ -1,5 +1,5 @@
 // Job types
-export type JobType = 'daily_button' | 'chat_click' | 'relogin';
+export type JobType = 'daily_button' | 'chat_click' | 'relogin' | 'fetch_profile';
 export type JobStatus = 'pending' | 'locked' | 'done' | 'failed' | 'skipped';
 export type SessionStatus = 'active' | 'expired' | 'relogin_required';
 export type AccountStatus = 'pending' | 'active' | 'relogin_required' | 'banned' | 'paused';
@@ -28,9 +28,16 @@ export interface LoginRequest {
 }
 
 // Worker → UK API
+export interface ProfileData {
+    user_id: string;
+    username: string;
+    balance: number;
+}
+
 export interface TaskResultBody {
     status: 'success' | 'failed' | 'relogin_required';
     currency_earned?: number;
+    profile_data?: ProfileData;
     error_message?: string;
     screenshot_path?: string;
 }
