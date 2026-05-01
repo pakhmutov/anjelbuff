@@ -22,6 +22,16 @@ export async function handleLoginRequest(req: LoginRequest): Promise<void> {
             timeout: 30_000,
         });
 
+        if (!page.url().includes('/login')) {
+            await ukApi.updateSession(account_id, {
+                profile_path: getProfilePath(account_id),
+                status: 'active',
+            });
+            await ukApi.updateLoginRequestStatus(id, { status: 'done' });
+            console.log(`[login] ${account_id}: ✅ already logged in`);
+            return;
+        }
+
         await page.locator('input[name="email"]').waitFor({ state: 'attached', timeout: 10_000 });
         await page.locator('input[name="email"]').fill(req.login_enc, { force: true });
         await page.locator('input[name="password"]').fill(req.password_enc, { force: true });
