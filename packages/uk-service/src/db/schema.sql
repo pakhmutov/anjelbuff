@@ -45,8 +45,12 @@ CREATE TABLE IF NOT EXISTS login_requests (
     password_enc  TEXT,
     created_at    TIMESTAMPTZ DEFAULT NOW(),
     updated_at    TIMESTAMPTZ DEFAULT NOW(),
-    error_message TEXT
+    error_message TEXT,
+    notified_at   TIMESTAMPTZ
 );
+
+-- Добавить колонку если БД уже существует
+ALTER TABLE login_requests ADD COLUMN IF NOT EXISTS notified_at TIMESTAMPTZ;
 
 CREATE TABLE IF NOT EXISTS jobs (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),

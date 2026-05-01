@@ -3,6 +3,7 @@ import express from 'express';
 import { migrate } from './db/migrate.ts';
 import { api } from './api/index.ts';
 import { createBot } from './bot/index.ts';
+import { startNotifier } from './bot/notifier.ts';
 
 async function main() {
     await migrate();
@@ -16,6 +17,7 @@ async function main() {
     // Telegram bot
     const bot = createBot();
     bot.launch();
+    startNotifier(bot);
     console.log('🤖 Bot started');
 
     process.once('SIGINT', () => bot.stop('SIGINT'));
