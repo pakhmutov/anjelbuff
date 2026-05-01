@@ -22,11 +22,10 @@ export async function handleLoginRequest(req: LoginRequest): Promise<void> {
             timeout: 30_000,
         });
 
-        await page.waitForSelector('input[name="email"]', { timeout: 10_000 });
-
-        await page.locator('input[name="email"]').fill(req.login_enc, { force: true });
-        await page.locator('input[name="password"]').fill(req.password_enc, { force: true });
-        await page.locator('button.login-button').click({ force: true });
+        await page.getByRole('textbox', { name: 'Почта' }).click();
+        await page.getByRole('textbox', { name: 'Почта' }).fill(req.login_enc);
+        await page.getByRole('textbox', { name: 'Пароль' }).fill(req.password_enc);
+        await page.getByRole('button', { name: 'Войти' }).click();
 
         await page
             .waitForURL((url) => !url.pathname.includes('/login'), { timeout: 15_000 })
